@@ -1,0 +1,76 @@
+function onOpen(e){
+  SpreadsheetApp.getUi()
+      .createMenu('Herramientas Newlife')
+      .addItem('Combinar Correspondencia', 'combinar')
+      .addToUi();
+  
+  SpreadsheetApp.getActiveSpreadsheet().getSheetByName('OPEN').getRange(1,2).setValue('NOW');
+  
+}
+function combinar(){
+  var ui=SpreadsheetApp.getUi();
+  var confirmacion=ui.alert("Ventana de confirmacion para la combinacion de correspondencia",ui.ButtonSet.YES_NO);
+  if(confirmacion== ui.Button.YES){
+    
+    var fila=2;
+    var nombre="A"+fila;
+    var hoja=SpreadsheetApp.getActive();
+    var celda =hoja.getRange(nombre);
+    var doc=DriveApp.getFileById("1VvaYGZXvES9vUQN8mq_YYJhbDAH_60Z2_9GWBwSohT8");
+    while(!celda.isBlank()){
+      var nuevo=doc.makeCopy("Directivo "+ hoja.getRange("A"+fila).getValue());
+      var documento=DocumentApp.openById(nuevo.getId());
+      var fecha= new Date();
+      var mes= fecha.getMonth();
+      var dia= fecha.getDate();
+      var anu= fecha.getFullYear();
+      switch(mes){
+        case 0:mes="Enero";break;
+        case 1:mes="Febrero";break;
+        case 2:mes="Marzo";break;
+        case 3:mes="Abril";break;
+        case 4:mes="Mayo";break;
+        case 5:mes="Junio";break;
+        case 6:mes="Julio";break;
+        case 7:mes="Agosto";break;
+        case 8:mes="Septiembre";break;
+        case 9:mes="Octubre";break;
+        case 10:mes="Noviembre";break;
+        case 11:mes="Diciembre";break;
+      }
+      var fechaD="Solicitado el "+ dia +" de "+ mes+ " del año "+ anu; 
+      documento.getBody().replaceText("<<Nombre>>", hoja.getRange("A"+fila).getValue());
+      documento.getBody().replaceText("<<Proyecto>>",hoja.getRange("B"+fila).getValue());
+      documento.getBody().replaceText("<<Motivo>>",hoja.getRange("C"+fila).getValue());
+      documento.getBody().replaceText("<<Fecha>>",fechaD);
+      var docPdf=documento.getAs("application/pdf");
+      docPdf.setName(documento.getName()+".pdf");
+      var pdf=DriveApp.createFile(docPdf);
+      pdf.moveTo(bFolder("Google script"));
+      var correo=hoja.getRange("D"+fila).getValue();
+      var titulo="Notificacion de cambios - Gerente";
+      var cuerpo="Se realizaron cambios en actividades ya planeadas, se le notifica para su aprobacion señor/a "+ hoja.getRange("A"+fila).getValue();
+      GmailApp.sendEmail(correo,titulo,cuerpo,{attachments:[pdf]});
+      documento.saveAndClose();
+      fila++;
+      nombre= 'A'+fila;
+      celda=hoja.getRange(nombre);
+      
+      
+    }
+    ui.alert("Proceso finalizado")
+  }
+  
+}
+
+
+
+function bFolder(name){
+  var folders = DriveApp.getFolders();
+  while (folders.hasNext()) {
+    var folder = folders.next();
+    if(folder.getName()==name){
+      return folder;
+    }
+  }
+}
